@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, Video, Image as ImageIcon, MessageSquare, Wand2 } from "lucide-react";
-import PromptCard, { PromptCardData } from "@/components/PromptCard";
+import PromptCardFallback, { PromptCardData } from "@/components/PromptCard";
+import PromptGrid from "@/components/PromptGrid";
+import { fetchPrompts, fetchCategories } from "@/lib/queries";
+
+export const revalidate = 60;
 
 // Placeholder data — Phase 2 replaces this with a live Supabase query
 // against the `prompts_public` view.
@@ -55,7 +59,13 @@ const PLATFORMS = [
   { icon: Wand2, label: "Cinematic Prompts" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [liveFeatured, categories] = await Promise.all([
+    fetchPrompts({ sort: "featured" }),
+    fetchCategories(),
+  ]);
+  const hasLiveData = liveFeatured.length > 0;
+
   return (
     <>
       {/* HERO */}
@@ -142,11 +152,20 @@ export default function HomePage() {
             View all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {SAMPLE_PROMPTS.map((p) => (
-            <PromptCard key={p.slug} prompt={p} />
-          ))}
-        </div>
+        {hasLiveData ? (
+          <PromptGrid prompts={liveFeatured.slice(0, 4)} categories={categories} />
+        ) : (
+          <>
+            <p className="mb-4 text-xs text-muted">
+              Showing sample prompts — add real prompts in Supabase to replace these.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {SAMPLE_PROMPTS.map((p) => (
+                <PromptCardFallback key={p.slug} prompt={p} />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* CTA */}

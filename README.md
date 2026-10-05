@@ -101,10 +101,36 @@ promptverse-ai/
   `profiles`, auto-granted to `jamilusayau@gmail.com` on signup) can write
   prompts/categories or read payments and unlocks across all users.
 
-## What's next (Phase 2)
+## Phase 2 — Explore, Categories, Prompt Detail (new in this update)
 
-Explore/Search page, category pages, and the free-prompt detail page with
-the copy-prompt button — wired to live Supabase data instead of the sample
-placeholders currently on the homepage.
+New pages, all reading live data from Supabase's `prompts_public` view:
 
-Just say **"continue to Phase 2"** when you're ready.
+- `/explore` — search + filters (Free/Premium, category, sort) + prompt grid
+- `/categories` — all categories
+- `/categories/[slug]` — prompts within one category
+- `/prompts/[slug]` — full prompt detail page. Free prompts show the real
+  master prompt with a working **Copy Prompt** button (Android Chrome + iOS
+  Safari safe, with a fallback for restricted clipboard permissions).
+  Premium prompts show a locked box instead — the actual unlock flow
+  (rewarded ads + Paystack) is built in Phase 4/5.
+- Homepage now pulls real **featured** prompts from Supabase automatically;
+  it only falls back to the sample cards if your database has none yet.
+
+### Two things to run in Supabase before you redeploy
+
+1. SQL Editor → run `supabase/migrations/002_phase2_view_count.sql`
+   (lets the site safely increment a prompt's view count).
+2. *(Optional, recommended for testing)* SQL Editor → run
+   `supabase/migrations/003_sample_prompts.sql` — adds one real free prompt
+   and one real premium prompt so Explore/Category/Detail pages have
+   something to show before you build the Admin Dashboard in Phase 6.
+
+Then push this update to GitHub the same way as before (`git add .` →
+`git commit -m "Phase 2"` → `git push`) — Netlify redeploys automatically.
+
+## What's next (Phase 3)
+
+Auth: Email/password login & register via Supabase Auth, the user
+dashboard shell, and guest-vs-logged-in state in the header.
+
+Just say **"continue to Phase 3"** when you're ready.
