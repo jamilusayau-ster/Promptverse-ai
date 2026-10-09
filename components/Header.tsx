@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Search, Menu, X, Sparkles } from "lucide-react";
 
 const NAV = [
@@ -15,6 +16,16 @@ const NAV = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setLoggedIn(!!session?.user);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-base/85 backdrop-blur-md">
@@ -48,15 +59,26 @@ export default function Header() {
           >
             <Search className="h-4 w-4" />
           </Link>
-          <Link href="/login" className="text-sm text-muted hover:text-ink transition-colors">
-            Login
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-base hover:bg-white transition-colors"
-          >
-            Register
-          </Link>
+          {loggedIn ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-base hover:bg-white transition-colors"
+            >
+              My Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-muted hover:text-ink transition-colors">
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-base hover:bg-white transition-colors"
+              >
+                Register
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -83,20 +105,32 @@ export default function Header() {
             ))}
           </nav>
           <div className="mt-4 flex gap-3">
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="flex-1 rounded-full border border-border py-2.5 text-center text-sm text-ink"
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
-              onClick={() => setOpen(false)}
-              className="flex-1 rounded-full bg-ink py-2.5 text-center text-sm font-medium text-base"
-            >
-              Register
-            </Link>
+            {loggedIn ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-full bg-ink py-2.5 text-center text-sm font-medium text-base"
+              >
+                My Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 rounded-full border border-border py-2.5 text-center text-sm text-ink"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 rounded-full bg-ink py-2.5 text-center text-sm font-medium text-base"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

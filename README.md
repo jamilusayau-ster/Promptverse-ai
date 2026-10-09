@@ -128,9 +128,33 @@ New pages, all reading live data from Supabase's `prompts_public` view:
 Then push this update to GitHub the same way as before (`git add .` →
 `git commit -m "Phase 2"` → `git push`) — Netlify redeploys automatically.
 
-## What's next (Phase 3)
+## Phase 3 - Login, Register, Dashboard
 
-Auth: Email/password login & register via Supabase Auth, the user
-dashboard shell, and guest-vs-logged-in state in the header.
+New pages: `/login`, `/register`, `/forgot-password`, `/reset-password`,
+`/dashboard` (profile, unlocked prompts, purchase history, favorites).
+`/dashboard` and `/admin` require login (enforced in `middleware.ts`).
+The header switches to "My Dashboard" when you are logged in.
+Browsing the site never requires an account.
 
-Just say **"continue to Phase 3"** when you're ready.
+### Supabase settings to change (one time)
+
+In Supabase: **Authentication > URL Configuration**
+- Site URL: your Netlify address, for example `https://promtverse.netlify.app`
+- Redirect URLs: add `https://promtverse.netlify.app/**`
+
+Without this, confirmation and password-reset emails will link to the wrong place.
+
+Optional while testing: **Authentication > Providers > Email** and turn off
+"Confirm email" so new accounts can log in immediately.
+
+### Becoming admin
+Register on the site using `jamilusayau@gmail.com`. The database trigger
+gives that email the `admin` role automatically. You will see an Admin
+button on your dashboard.
+
+## What's next (Phase 4)
+
+Premium unlock with Paystack: secure server-side payment initialize/verify,
+unlock records, and the real "Unlock Premium Prompt" modal.
+
+Say **"continue to Phase 4"** when ready.
