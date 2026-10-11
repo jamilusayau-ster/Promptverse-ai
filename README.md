@@ -152,9 +152,28 @@ Register on the site using `jamilusayau@gmail.com`. The database trigger
 gives that email the `admin` role automatically. You will see an Admin
 button on your dashboard.
 
-## What's next (Phase 4)
+## Phase 4 - Paystack payments (premium unlock)
 
-Premium unlock with Paystack: secure server-side payment initialize/verify,
-unlock records, and the real "Unlock Premium Prompt" modal.
+Flow: buyer taps Unlock > server creates a pending payment (price comes from
+the database, default 1000 NGN) > Paystack popup > server asks Paystack to
+verify (reference, amount, currency, email) > only then an unlock is saved.
+The frontend "success" callback alone never unlocks anything.
 
-Say **"continue to Phase 4"** when ready.
+- `POST /api/payments/initialize` creates the transaction
+- `POST /api/payments/verify` confirms with Paystack and unlocks
+- `POST /api/payments/webhook` lets Paystack confirm even if the buyer closes the page
+- `GET /api/prompts/[slug]/unlocked` is the ONLY route that returns a premium prompt, and only after a verified unlock
+- Guests are remembered with a signed, httpOnly cookie; logged-in users by their account/email
+
+### Do these once
+1. Supabase SQL Editor: run `supabase/migrations/004_phase4_payments.sql`.
+2. Netlify > Environment variables: add `UNLOCK_COOKIE_SECRET` (long random text) and `PROMPT_UNLOCK_PRICE_NGN` = 1000, then redeploy.
+3. Paystack > Settings > API Keys & Webhooks > Webhook URL:
+   `https://YOUR-SITE.netlify.app/api/payments/webhook`
+4. Test first with your Paystack TEST keys (pk_test / sk_test) before going live.
+
+Ad unlock (Watch 3 Ads) shows as "Coming soon" until Phase 5.
+
+## What's next (Phase 5)
+
+Rewarded ads unlock with Google Ad Manager, server-side sessions, rate limits.

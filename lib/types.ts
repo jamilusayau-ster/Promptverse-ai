@@ -29,4 +29,5 @@ export interface PublicPrompt {
   pro_tips: string | null;
   settings: Record<string, string> | null;
   created_at: string;
+  price_ngn: number | null;
 }

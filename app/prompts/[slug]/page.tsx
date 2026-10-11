@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { fetchPromptBySlug, fetchRelatedPrompts, fetchCategories } from "@/lib/queries";
 import CopyButton from "@/components/CopyButton";
-import PremiumLockBox from "@/components/PremiumLockBox";
+import PremiumUnlock from "@/components/PremiumUnlock";
 import ViewTracker from "@/components/ViewTracker";
 import PromptGrid from "@/components/PromptGrid";
 
@@ -87,7 +87,7 @@ export default async function PromptDetailPage({ params }: Props) {
         </h2>
 
         {isPremium && !prompt.master_prompt ? (
-          <PremiumLockBox />
+          <PremiumUnlock slug={prompt.slug} priceNgn={prompt.price_ngn && prompt.price_ngn > 0 ? prompt.price_ngn : 1000} />
         ) : (
           <div className="rounded-xl2 border border-border bg-[#0D1020] p-5">
             <pre className="whitespace-pre-wrap break-words font-body text-sm leading-relaxed text-ink/90">

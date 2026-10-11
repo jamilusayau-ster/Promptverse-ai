@@ -93,7 +93,7 @@ export async function fetchPromptBySlug(slug: string): Promise<PublicPrompt | nu
   const { data, error } = await supabase
     .from("prompts_public")
     .select(
-      "id,title,slug,description,thumbnail_url,category_id,platform,prompt_type,featured,view_count,master_prompt,negative_prompt,how_to_use,pro_tips,settings,created_at"
+      "id,title,slug,description,thumbnail_url,category_id,platform,prompt_type,featured,view_count,master_prompt,negative_prompt,how_to_use,pro_tips,settings,created_at,price_ngn"
     )
     .eq("slug", slug)
     .single();
