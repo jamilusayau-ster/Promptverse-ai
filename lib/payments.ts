@@ -45,12 +45,19 @@ export type FinalizeResult =
  * and by the Paystack webhook. It re-checks everything with Paystack using
  * the secret key, so a forged frontend "success" can never unlock anything.
  * It is idempotent: calling it twice for one reference gives one unlock.
+ *
+ * Every database write is checked. If a write fails we return an error
+ * (and log it) instead of pretending the payment was finalized.
  */
 export async function finalizePayment(reference: string): Promise<FinalizeResult> {
   const admin = createAdminClient();
 
-  const { data: payment } = await admin
+  const { data: payment, error: payErr } = await admin
     .from("payments").select("*").eq("reference", reference).maybeSingle();
+  if (payErr) {
+    console.error("[finalizePayment] could not read payment", reference, payErr);
+    return { ok: false, error: "db_error" };
+  }
   if (!payment) return { ok: false, error: "unknown_reference" };
 
   const { data: prompt } = await admin
@@ -63,7 +70,9 @@ export async function finalizePayment(reference: string): Promise<FinalizeResult
     if (!result?.status || !tx) return { ok: false, error: "verify_failed" };
 
     if (tx.status === "failed") {
-      await admin.from("payments").update({ status: "failed" }).eq("reference", reference);
+      const { error: failErr } = await admin
+        .from("payments").update({ status: "failed" }).eq("reference", reference);
+      if (failErr) console.error("[finalizePayment] could not mark failed", reference, failErr);
       return { ok: false, error: "payment_failed" };
     }
     if (tx.status !== "success") return { ok: false, error: "not_paid_yet" };
@@ -75,18 +84,31 @@ export async function finalizePayment(reference: string): Promise<FinalizeResult
       tx.currency !== payment.currency ||
       !emailOk
     ) {
-      await admin.from("payments").update({ status: "failed", metadata: { reason: "mismatch" } }).eq("reference", reference);
+      const { error: mmErr } = await admin
+        .from("payments")
+        .update({ status: "failed", metadata: { ...(payment.metadata ?? {}), reason: "mismatch" } })
+        .eq("reference", reference);
+      if (mmErr) console.error("[finalizePayment] could not mark mismatch", reference, mmErr);
       return { ok: false, error: "mismatch" };
     }
 
-    await admin.from("payments")
+    const { error: updErr } = await admin.from("payments")
       .update({ status: "success", verified_at: new Date().toISOString() })
       .eq("reference", reference);
+    if (updErr) {
+      console.error("[finalizePayment] could not mark success", reference, updErr);
+      return { ok: false, error: "db_error" };
+    }
   }
 
-  const { data: existing } = await admin
-    .from("unlocks").select("id").eq("payment_reference", reference).maybeSingle();
-  if (!existing) {
+  const { data: existingRows, error: exErr } = await admin
+    .from("unlocks").select("id").eq("payment_reference", reference).limit(1);
+  if (exErr) {
+    console.error("[finalizePayment] could not read unlocks", reference, exErr);
+    return { ok: false, error: "db_error" };
+  }
+
+  if (!existingRows || existingRows.length === 0) {
     const { error } = await admin.from("unlocks").insert({
       user_id: payment.user_id,
       email: payment.email,
@@ -95,7 +117,10 @@ export async function finalizePayment(reference: string): Promise<FinalizeResult
       payment_reference: reference,
     });
     // 23505 = unique violation: an unlock already exists, which is fine.
-    if (error && error.code !== "23505") return { ok: false, error: "unlock_failed" };
+    if (error && error.code !== "23505") {
+      console.error("[finalizePayment] could not create unlock", reference, error);
+      return { ok: false, error: "unlock_failed" };
+    }
   }
   return { ok: true, promptId: payment.prompt_id, slug: prompt?.slug ?? null };
 }

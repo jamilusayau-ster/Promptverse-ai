@@ -1,29 +1,54 @@
 import { NextResponse } from "next/server";
-import { createHmac, timingSafeEqual } from "crypto";
+import crypto from "crypto";
 import { finalizePayment } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-// Paystack calls this server-to-server, so payments still complete even if
-// the buyer closes the browser right after paying. Set the URL in Paystack:
-// Settings > API Keys & Webhooks > Webhook URL
-//   https://YOUR-SITE.netlify.app/api/payments/webhook
+/**
+ * Paystack webhook. Paystack calls this itself when a payment succeeds,
+ * even if the customer's browser died or their network dropped.
+ * Security: the request is only trusted if its HMAC-SHA512 signature,
+ * made with our secret key, matches. The payment is then re-verified
+ * with Paystack inside finalizePayment, so nothing is trusted blindly.
+ */
 export async function POST(req: Request) {
   const raw = await req.text();
   const signature = req.headers.get("x-paystack-signature") || "";
-  const expected = createHmac("sha512", process.env.PAYSTACK_SECRET_KEY || "").update(raw).digest("hex");
+  const secret = process.env.PAYSTACK_SECRET_KEY || "";
 
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+  if (!secret || !signature) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const expected = crypto.createHmac("sha512", secret).update(raw).digest("hex");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let event: any;
   try {
-    const event = JSON.parse(raw);
-    if (event?.event === "charge.success" && event?.data?.reference) {
-      await finalizePayment(String(event.data.reference));
-    }
-  } catch {}
+    event = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+
+  if (event?.event !== "charge.success") {
+    return NextResponse.json({ received: true });
+  }
+
+  const reference = String(event?.data?.reference || "");
+  if (!/^pv_[a-f0-9]{32}$/.test(reference)) {
+    // Not one of our payments. Acknowledge so Paystack does not keep retrying.
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
+  const result = await finalizePayment(reference);
+  if (!result.ok && ["db_error", "unlock_failed", "verify_failed"].includes(result.error)) {
+    // Temporary problem on our side: a 500 makes Paystack retry later.
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
   return NextResponse.json({ received: true });
 }
