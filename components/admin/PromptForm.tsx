@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { settingsToText } from "@/lib/admin";
+import ThumbnailUpload from "@/components/admin/ThumbnailUpload";
 
 type Category = { id: string; name: string };
 
@@ -45,13 +46,7 @@ export default function PromptForm({
         <textarea name="description" rows={2} defaultValue={p.description ?? ""} className={input} />
       </div>
 
-      <div>
-        <label className={label}>Thumbnail image URL</label>
-        <input name="thumbnail_url" defaultValue={p.thumbnail_url ?? ""} placeholder="https://...supabase.co/storage/v1/object/public/prompt-images/..." className={input} />
-        <p className="mt-1 text-xs text-muted">
-          Upload the image to the prompt-images bucket in Supabase Storage, then paste its public URL here.
-        </p>
-      </div>
+      <ThumbnailUpload defaultUrl={p.thumbnail_url ?? ""} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
