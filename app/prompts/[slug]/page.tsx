@@ -6,6 +6,7 @@ import CopyButton from "@/components/CopyButton";
 import PremiumUnlock from "@/components/PremiumUnlock";
 import ViewTracker from "@/components/ViewTracker";
 import PromptGrid from "@/components/PromptGrid";
+import AdSlot from "@/components/AdSlot";
 
 export const revalidate = 30;
 
@@ -157,6 +158,9 @@ export default async function PromptDetailPage({ params }: Props) {
           </div>
         </div>
       )}
+
+      {/* ADVERTISEMENT — far from the Copy / Unlock buttons, renders nothing until AdSense keys are set */}
+      <AdSlot placement="detail" />
 
       {/* RELATED */}
       {related.length > 0 && (

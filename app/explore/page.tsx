@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { fetchPrompts, fetchCategories } from "@/lib/queries";
 import ExploreControls from "@/components/ExploreControls";
 import PromptGrid from "@/components/PromptGrid";
+import AdSlot from "@/components/AdSlot";
 
 export const metadata: Metadata = {
   title: "Explore Prompts",
@@ -38,6 +39,9 @@ export default async function ExplorePage({ searchParams }: Props) {
       <div className="mt-8">
         <PromptGrid prompts={prompts} categories={categories} />
       </div>
+
+      {/* ADVERTISEMENT — below the results, renders nothing until AdSense keys are set */}
+      <AdSlot placement="list" />
     </div>
   );
 }

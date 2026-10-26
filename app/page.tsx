@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Video, Image as ImageIcon, MessageSquare, Wand2 } from "lucide-react";
 import PromptCardFallback, { PromptCardData } from "@/components/PromptCard";
 import PromptGrid from "@/components/PromptGrid";
+import AdSlot from "@/components/AdSlot";
 import { fetchPrompts, fetchCategories } from "@/lib/queries";
 
 export const revalidate = 60;
@@ -167,6 +168,9 @@ export default async function HomePage() {
           </>
         )}
       </section>
+
+      {/* ADVERTISEMENT — renders nothing until AdSense keys are set */}
+      <AdSlot placement="home" />
 
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-16">
